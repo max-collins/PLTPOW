@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.metrics import r2_score
 
 
@@ -30,7 +30,7 @@ def get_rmodel(file, lower_epc, upper_epc, lower_dist, upper_dist):
     input:  lower_epc is the minimum epc a row must have to be included in the fit and test, similair for upper_epc. 
             lower_dist is the minimum dist a row must have to be incldued in the fit and test, similair for upper_dist
 
-    output: returns (the coeff of the model, the intercept of the model, mean_absolute_error of the model, the R2 score of the model)
+    output: returns (the coeff, the intercept, mean_absolute_error, mean_square_error, the R2 score)
     """
     df = pd.read_csv(file)
     df = df.loc[df['epc'] >= lower_epc]
@@ -39,9 +39,11 @@ def get_rmodel(file, lower_epc, upper_epc, lower_dist, upper_dist):
     df = df.loc[df['dist'] <= upper_dist]
     df = df.loc[df['dist'] - round(df['dist']) == 0]
     df = df.loc[df['pow'] > .05]
-    
+
     X = df[['dist']]
     y = df['pow']
+
+
 
     model = LinearRegression()
     model.fit(X,y)
@@ -49,7 +51,8 @@ def get_rmodel(file, lower_epc, upper_epc, lower_dist, upper_dist):
     rmodel = Rounded_Reg(model.coef_, model.intercept_, 2)
 
     y_pred = rmodel.predict(X)
-    error = mean_absolute_error(y, y_pred)
+    m_a_error = mean_absolute_error(y, y_pred)
+    m_2_error = mean_squared_error(y,y_pred)
     r2 = r2_score(y,y_pred)
 
-    return (rmodel.coeffs, rmodel.intercept, error, r2)
+    return (rmodel.coeffs, rmodel.intercept, m_a_error, m_2_error, r2)
