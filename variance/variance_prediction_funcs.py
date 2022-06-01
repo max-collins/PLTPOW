@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-
+rng = np.random.default_rng(12345)
 df = pd.read_csv('EpcProject3.csv')
 
 class Evaluator:
@@ -14,33 +14,50 @@ class Evaluator:
         else:
             self.df = df
     
-    def accuracy_score(self, model, params):
-        df_roll = df.loc[df['Description'] == 'Rollish']
-        df_low = df.loc[df['Description'] == 'Low']
-        df_med = df.loc[df['Description'] == 'Medium']
-        df_high = df.loc[df['Description'] == 'High']
-        n = min(df_roll.shape[0], df_low.shape[0], df_med.shape[0], df_high.shape[0])
-        df_roll = df.loc[df['Description'] == 'Rollish'].sample(n = n)
-        df_low = df.loc[df['Description'] == 'Low'].sample(n = n)
-        df_med = df.loc[df['Description'] == 'Medium'].sample(n = n)
-        df_high = df.loc[df['Description'] == 'High'].sample(n = n)
-        df_eval = pd.concat([df_roll, df_low, df_med, df_high])
+    def accuracy_score(self, model, params, balanced = True):
+        if balanced == True:
+            df_roll = df.loc[df['Description'] == 'Rollish']
+            df_low = df.loc[df['Description'] == 'Low']
+            df_med = df.loc[df['Description'] == 'Medium']
+            df_high = df.loc[df['Description'] == 'High']
+            n = min(df_roll.shape[0], df_low.shape[0], df_med.shape[0], df_high.shape[0])
+            df_roll = df.loc[df['Description'] == 'Rollish'].sample(n = n)
+            df_low = df.loc[df['Description'] == 'Low'].sample(n = n)
+            df_med = df.loc[df['Description'] == 'Medium'].sample(n = n)
+            df_high = df.loc[df['Description'] == 'High'].sample(n = n)
+            df_eval = pd.concat([df_roll, df_low, df_med, df_high])
+        else:
+            df_eval = df
 
         X = df_eval[params]
         y = df_eval[self.variance]
-        predictions = model(X)
+        if model == dummy_model:
+            predictions = model(X, self.variance)
+        else:
+            predictions = model(X)
         current_correct = 0 
         for i in range(predictions.shape[0]):
             prediction = predictions[i]
             if prediction == y.iloc[i]:
                 current_correct += 1
         return current_correct/len(y)
-    
-    def dummy_score(self):
-        high_rows = df[df['High'] == True]
-        percentage = high_rows.shape[0]/df.shape[0]
-        return percentage
-        
+
+######################## dummy model just to make sure #################
+def dummy_model(X, variance):
+    var_rows = df[df[variance] == True]
+    percentage = var_rows.shape[0]/df.shape[0]
+
+    predictions = np.array([])
+    for i in range(X.shape[0]):
+        roll = rng.random()
+        if roll <= percentage:
+            predictions = np.append(predictions, [True])
+        else: 
+            predictions = np.append(predictions, [False])
+    return predictions
+########################################################################
+
+
 ########################## high variance  ##############################
 def high_prediction(X):
     """
@@ -56,14 +73,14 @@ def high_prediction(X):
 
 def high_pred_hard(X):
     """
-    better_high_model
+    better high model
     """
     predictions = np.array([])
     for i in range(X.shape[0]):
         data_point = X.iloc[i]
         ad = data_point[0]
         three = data_point[1]
-        if -3*ad + -1*three + 4 >= 0:
+        if -2.5*ad + -1*three + 3 >= 0:
             predictions = np.append(predictions, [True])
         else:
             predictions = np.append(predictions, [False])
