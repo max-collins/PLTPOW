@@ -1,36 +1,40 @@
 import pandas as pd
 import numpy as np
 rng = np.random.default_rng(12345)
-df = pd.read_csv('EpcProject3.csv')
+df_0 = pd.read_csv('EpcProject3.csv')
 
 class Evaluator:
     """
     Class for evaluating the preformance of manually made models. Input the variance you want to test for
     """
-    def __init__(self, variance = None) -> None:
+    def __init__(self, variance = None, df = df_0)-> None:
         self.variance = variance
-        if type(variance) != None:
-            self.df = df.loc[df['Description'] == variance]
-        else:
-            self.df = df
+        # if type(variance) != None:
+        #     self.df = df.loc[df['Description'] == variance]
+        # else:
+        self.df = df
     
-    def accuracy_score(self, model, params, balanced = True):
+    def head(self):
+        return self.df.head()
+    
+    def accuracy_score(self, model, params, balanced = False):
         if balanced == True:
-            df_roll = df.loc[df['Description'] == 'Rollish']
-            df_low = df.loc[df['Description'] == 'Low']
-            df_med = df.loc[df['Description'] == 'Medium']
-            df_high = df.loc[df['Description'] == 'High']
+            df_roll = self.df.loc[self.df['Description'] == 'Rollish']
+            df_low = self.df.loc[self.df['Description'] == 'Low']
+            df_med = self.df.loc[self.df['Description'] == 'Medium']
+            df_high = self.df.loc[self.df['Description'] == 'High']
             n = min(df_roll.shape[0], df_low.shape[0], df_med.shape[0], df_high.shape[0])
-            df_roll = df.loc[df['Description'] == 'Rollish'].sample(n = n)
-            df_low = df.loc[df['Description'] == 'Low'].sample(n = n)
-            df_med = df.loc[df['Description'] == 'Medium'].sample(n = n)
-            df_high = df.loc[df['Description'] == 'High'].sample(n = n)
+            df_roll = self.df.loc[self.df['Description'] == 'Rollish'].sample(n = n)
+            df_low = self.df.loc[self.df['Description'] == 'Low'].sample(n = n)
+            df_med = self.df.loc[self.df['Description'] == 'Medium'].sample(n = n)
+            df_high = self.df.loc[self.df['Description'] == 'High'].sample(n = n)
             df_eval = pd.concat([df_roll, df_low, df_med, df_high])
         else:
-            df_eval = df
+            df_eval = self.df
 
-        X = df_eval[params]
+        X = df_eval[params]    
         y = df_eval[self.variance]
+
         if model == dummy_model:
             predictions = model(X, self.variance)
         else:
@@ -40,7 +44,21 @@ class Evaluator:
             prediction = predictions[i]
             if prediction == y.iloc[i]:
                 current_correct += 1
-        return current_correct/len(y)
+        return current_correct/self.df.shape[0]
+
+    def misses(self, model, params):
+        df_eval = self.df
+        misses = []
+
+        X = df_eval[params]
+        y = df_eval[self.variance]
+        predictions = model(X)
+
+        for i in range(predictions.shape[0]):
+            prediction = predictions[i]
+            if prediction != y.iloc[i]:
+                misses.append((self.df.iloc[i]['Position'], self.df.iloc[i]['Description']))
+        return misses
 
 ######################## dummy model just to make sure #################
 def dummy_model(X, variance):
@@ -103,3 +121,4 @@ def roll_pred(X):
         else:
             predictions = np.append(predictions, [False])
     return predictions
+
